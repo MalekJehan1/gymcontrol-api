@@ -1,0 +1,104 @@
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const Usuario = require('../models/Usuario');
+
+require('dotenv').config();
+const JWT_SECRET = process.env.JWT_SECRET || "troque_essa_chave";
+
+function gerarToken(usuario) {
+  return jwt.sign(
+    { id: usuario.id, email: usuario.email, tipo: usuario.tipo },
+    JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
+  );
+}
+
+module.exports = {
+  async register(req, res) {
+    try {
+      const { nome, email, senha } = req.body;
+
+      if (!nome || !email || !senha)
+        return res.status(400).json({ message: "Campos inválidos" });
+
+      const existe = await Usuario.query().findOne({ email });
+      if (existe)
+        return res.status(409).json({ message: "E-mail já cadastrado" });
+
+      const hash = await bcrypt.hash(senha, 10);
+
+      const user = await Usuario.query().insert({
+        nome,
+        email,
+        senha: hash,
+        tipo: "aluno"
+      });
+
+      return res.status(201).json({
+        user,
+        token: gerarToken(user)
+      });
+
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Erro no servidor" });
+    }
+  },
+
+  async login(req, res) {
+    try {
+      const { email, senha } = req.body;
+
+      const user = await Usuario.query().findOne({ email });
+      if (!user) return res.status(401).json({ message: "Credenciais inválidas" });
+
+      const ok = await bcrypt.compare(senha, user.senha);
+      if (!ok) return res.status(401).json({ message: "Credenciais inválidas" });
+
+      return res.json({
+        user,
+        token: gerarToken(user)
+      });
+
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Erro no servidor" });
+    }
+  },
+
+  async me(req, res) {
+    try {
+      const user = await Usuario.query()
+        .findById(req.user.id)
+        .select("id", "nome", "email", "tipo", "created_at");
+
+      return res.json({ user });
+
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Erro no servidor" });
+    }
+  },
+
+  async updateMe(req, res) {
+  try {
+    const { nome, email, senha } = req.body;
+
+    const patch = {};
+    if (nome) patch.nome = nome;
+    if (email) patch.email = email;
+    if (senha) patch.senha = await bcrypt.hash(senha, 10);
+
+    const updated = await Usuario.query()
+      .patchAndFetchById(req.user.id, patch)
+      .select("id", "nome", "email", "tipo");
+
+    return res.json({ user: updated });
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Erro no servidor" });
+  }
+}
+
+};
