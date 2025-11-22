@@ -2,17 +2,19 @@ const express = require('express');
 const router = express.Router();
 const treinoController = require('../controllers/treinoController');
 const auth = require('../middleware/authMiddleware');
-const admin = require('../middleware/adminMiddleware');
+const professor = require('../middleware/professorMiddleware');
 
-// treinos CRUD
-router.get('/', auth, treinoController.list);
-router.get('/:id', auth, treinoController.get);
-router.post('/', auth, treinoController.create);
-router.put('/:id', auth, treinoController.update);
-router.delete('/:id', auth, admin, treinoController.remove);
+// Rotas públicas para qualquer usuário autenticado
+router.get('/', auth, treinoController.list);                 
+router.get('/:id', auth, treinoController.get);              
 
-// associacoes treino <-> exercicio
-router.post('/:id/exercicios', auth, admin, treinoController.addExercicio); // admin required to modify associacao
-router.delete('/:id/exercicios/:exercicioId', auth, admin, treinoController.removeExercicio);
+
+// Rotas protegidas para professores ou administradores
+router.post('/', auth, professor, treinoController.create);   
+router.put('/:id', auth, professor, treinoController.update); 
+router.delete('/:id', auth, professor, treinoController.remove); 
+router.post('/:id/exercicios', auth, professor, treinoController.addExercicio);
+router.delete('/:id/exercicios/:exercicioId', auth, professor, treinoController.removeExercicio);
+
 
 module.exports = router;

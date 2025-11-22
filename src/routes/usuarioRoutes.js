@@ -8,7 +8,7 @@ const adminMiddleware = require('../middleware/adminMiddleware');
 router.use(authMiddleware);
 
 // ------ Rotas do próprio usuário ------
-router.put('/me', usuarioController.updateMe);
+router.put('/update-me', usuarioController.updateMe);
 
 // ------ Rotas de admin ------
 router.get('/', adminMiddleware, usuarioController.list);
