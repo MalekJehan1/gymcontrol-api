@@ -3,13 +3,13 @@ const jwt = require('jsonwebtoken');
 const Usuario = require('../models/Usuario');
 
 require('dotenv').config();
-const JWT_SECRET = process.env.JWT_SECRET || "troque_essa_chave";
+const JWT_SECRET = process.env.JWT_SECRET;
 
 function gerarToken(usuario) {
   return jwt.sign(
     { id: usuario.id, email: usuario.email, tipo: usuario.tipo },
     JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
+    { expiresIn: process.env.JWT_EXPIRES_IN}
   );
 }
 
@@ -34,6 +34,8 @@ module.exports = {
         tipo: "aluno"
       });
 
+      delete user.senha;
+
       return res.status(201).json({
         user,
         token: gerarToken(user)
@@ -54,6 +56,8 @@ module.exports = {
 
       const ok = await bcrypt.compare(senha, user.senha);
       if (!ok) return res.status(401).json({ message: "Credenciais inválidas" });
+
+      delete user.senha;
 
       return res.json({
         user,
