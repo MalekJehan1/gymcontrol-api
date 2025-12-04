@@ -5,13 +5,12 @@ const Usuario = require("../models/Usuario");
 require("dotenv").config();
 const JWT_SECRET = process.env.JWT_SECRET;
 
-function gerarToken(usuario) {
-  return jwt.sign({ usuario }, JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN,
-  });
-}
-
 module.exports = {
+  gerarToken(usuario) {
+    return jwt.sign({ usuario }, JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRES_IN,
+    });
+  },
   async register(req, res) {
     try {
       const { nome, sobrenome, email, senha } = req.body;
@@ -19,9 +18,10 @@ module.exports = {
       if (!nome || !sobrenome || !email || !senha)
         return res.status(400).json({ message: "Campos inválidos" });
 
-      const existe = await Usuario.query().findOne({ email });
-      if (existe)
-        return res.status(409).json({ message: "E-mail já cadastrado" });
+      const emailExists = await Usuario.query().findOne({ email });
+      if (emailExists) {
+        return res.status(409).json({ message: "Email já cadastrado." });
+      }
 
       const hash = await bcrypt.hash(senha, 10);
 
@@ -41,7 +41,7 @@ module.exports = {
       });
     } catch (err) {
       console.error(err);
-      return res.status(500).json({ message: "Erro no servidor" });
+      return res.status(500).json({ message: "Erro ao criar usuário." });
     }
   },
 
