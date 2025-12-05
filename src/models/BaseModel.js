@@ -1,7 +1,5 @@
-const { Model } = require('objection');
+const { Model } = require("objection");
 
-class BaseModel extends Model {
-  // shared helpers later
-}
+class BaseModel extends Model {}
 
 module.exports = BaseModel;

@@ -1,9 +1,9 @@
 const { Model } = require("objection");
 const Usuario = require("./Usuario");
 
-class Aluno extends Model {
+class Professor extends Model {
   static get tableName() {
-    return "alunos";
+    return "professores";
   }
 
   static get relationMappings() {
@@ -12,7 +12,7 @@ class Aluno extends Model {
         relation: Model.BelongsToOneRelation,
         modelClass: Usuario,
         join: {
-          from: "alunos.usuario_id",
+          from: "professores.usuario_id",
           to: "usuarios.id",
         },
       },
@@ -20,4 +20,4 @@ class Aluno extends Model {
   }
 }
 
-module.exports = Aluno;
+module.exports = Professor;

@@ -5,24 +5,26 @@ const auth = require("../middleware/authMiddleware");
 const professor = require("../middleware/professorMiddleware");
 
 // Rotas públicas para qualquer usuário autenticado
-router.get("/", auth, treinoController.list);
-router.get("/:id", auth, treinoController.get);
+router.get("/meus-treinos", auth, treinoController.listMeusTreinos);
+// router.get("/:id", auth, treinoController.get);
 
 // Rotas protegidas para professores ou administradores
+router.get("/", auth, professor, treinoController.list);
+
 router.post("/", auth, professor, treinoController.create);
 router.put("/:id", auth, professor, treinoController.update);
 router.delete("/:id", auth, professor, treinoController.remove);
-router.post(
-  "/:id/exercicios/:exerciciosId",
-  auth,
-  professor,
-  treinoController.addExercicio
-);
-router.delete(
-  "/:id/exercicios/:exercicioId",
-  auth,
-  professor,
-  treinoController.removeExercicio
-);
+// router.post(
+//   "/:id/exercicios/:exerciciosId",
+//   auth,
+//   professor,
+//   treinoController.addExercicios
+// );
+// router.delete(
+//   "/:id/exercicios/:exercicioId",
+//   auth,
+//   professor,
+//   treinoController.removeExercicio
+// );
 
 module.exports = router;

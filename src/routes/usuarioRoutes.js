@@ -4,7 +4,6 @@ const usuarioController = require("../controllers/usuarioController");
 const authMiddleware = require("../middleware/authMiddleware");
 const adminMiddleware = require("../middleware/adminMiddleware");
 
-// Protege TODAS as rotas abaixo
 router.use(authMiddleware);
 
 // ------ Rotas do próprio usuário ------

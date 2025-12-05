@@ -8,7 +8,7 @@ class Treino extends BaseModel {
   static get relationMappings() {
     const Exercicio = require("./Exercicio");
     const Aluno = require("./Aluno");
-    const Usuario = require("./Usuario");
+    const Professor = require("./Professor");
 
     return {
       exercicios: {
@@ -19,32 +19,27 @@ class Treino extends BaseModel {
           through: {
             from: "treino_exercicios.treino_id",
             to: "treino_exercicios.exercicio_id",
-            // 🔥 IMPORTANTE: retorna séries, reps e descanso!
             extra: ["series", "repeticoes", "descanso_segundos"],
           },
           to: "exercicios.id",
         },
       },
 
-      alunos: {
-        relation: BaseModel.ManyToManyRelation,
+      aluno: {
+        relation: BaseModel.BelongsToOneRelation,
         modelClass: Aluno,
         join: {
-          from: "treinos.id",
-          through: {
-            from: "aluno_treinos.treino_id",
-            to: "aluno_treinos.aluno_id",
-          },
+          from: "treinos.aluno_id",
           to: "alunos.id",
         },
       },
 
-      usuario: {
+      professor: {
         relation: BaseModel.BelongsToOneRelation,
-        modelClass: Usuario,
+        modelClass: Professor,
         join: {
-          from: "treinos.usuario_id",
-          to: "usuarios.id",
+          from: "treinos.professor_id",
+          to: "professores.id",
         },
       },
     };

@@ -5,12 +5,13 @@ const Usuario = require("../models/Usuario");
 require("dotenv").config();
 const JWT_SECRET = process.env.JWT_SECRET;
 
+function gerarToken(usuario) {
+  return jwt.sign({ usuario }, JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN,
+  });
+}
+
 module.exports = {
-  gerarToken(usuario) {
-    return jwt.sign({ usuario }, JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN,
-    });
-  },
   async register(req, res) {
     try {
       const { nome, sobrenome, email, senha } = req.body;

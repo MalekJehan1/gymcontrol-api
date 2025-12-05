@@ -1,18 +1,21 @@
 const Treino = require("../models/Treino");
 const Exercicio = require("../models/Exercicio");
+const Professor = require("../models/Professor");
+const Aluno = require("../models/Aluno");
 
 module.exports = {
   async list(req, res) {
-    // lista todos os treinos com exercícios
-    const rows = await Treino.query().withGraphFetched("exercicios");
+    const rows = await Treino.query()
+      .withGraphFetched("[exercicios, professor.usuario, aluno.usuario]")
+      .orderBy("id", "descricao");
     res.json(rows);
   },
 
   async listMeusTreinos(req, res) {
+    console.log("Listando treinos do aluno logado request.user:", req.user);
     try {
       const usuarioId = req.user.usuario.id;
 
-      // Buscar o aluno vinculado ao usuário
       const aluno = await require("../models/Aluno")
         .query()
         .findOne({ usuario_id: usuarioId });
@@ -24,11 +27,10 @@ module.exports = {
       }
 
       const treinos = await Treino.query()
-        .join("aluno_treinos", "treinos.id", "aluno_treinos.treino_id")
-        .where("aluno_treinos.aluno_id", aluno.id)
-        .andWhere("aluno_treinos.ativo", true)
-        .select("treinos.*")
-        .withGraphFetched("exercicios");
+        .where("aluno_id", aluno.id)
+        .withGraphFetched("[exercicios, professor.usuario, aluno.usuario]");
+
+      console.log("Treinos encontrados para o aluno:", treinos);
 
       res.json(treinos);
     } catch (err) {
@@ -49,42 +51,93 @@ module.exports = {
   },
 
   async create(req, res) {
-    const { nome, descricao, usuario_id } = req.body;
-    const created = await Treino.query().insert({
-      nome,
-      descricao,
-      usuario_id,
-    });
-    res.status(201).json(created);
+    try {
+      const { nome, descricao, aluno_id, professor_id, exercicios } = req.body;
+
+      if (!aluno_id || !professor_id) {
+        return res.status(400).json({
+          message: "Aluno e professor devem ser informados",
+        });
+      }
+
+      const created = await Treino.query().insert({
+        nome,
+        descricao,
+        aluno_id,
+        professor_id,
+      });
+
+      // Inserir exercícios
+      if (Array.isArray(exercicios) && exercicios.length > 0) {
+        const knex = require("../db");
+
+        const inserts = exercicios.map((ex) => ({
+          treino_id: created.id,
+          exercicio_id: ex.id,
+          series: ex.series || 0,
+          repeticoes: ex.repeticoes || 0,
+          descanso_segundos: ex.descanso_segundos || 0,
+        }));
+
+        await knex("treino_exercicios").insert(inserts);
+      }
+
+      const treinoCompleto = await Treino.query()
+        .findById(created.id)
+        .withGraphFetched("[exercicios]");
+
+      return res.status(201).json(treinoCompleto);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Erro ao criar treino" });
+    }
   },
 
   async update(req, res) {
-    const id = req.params.id;
-    let data = { ...req.body };
+    try {
+      const id = req.params.id;
+      const { nome, descricao, aluno_id, professor_id, exercicios } = req.body;
 
-    //  Remover exerciciosIds para NÃO tentar salvar na tabela treinos
-    const exerciciosIds = data.exerciciosIds;
-    delete data.exerciciosIds;
-
-    await Treino.query().patch(data).where("id", id);
-
-    if (Array.isArray(exerciciosIds)) {
-      const knex = require("../db");
-
-      await knex("treino_exercicios").where({ treino_id: id }).del();
-
-      for (const exId of exerciciosIds) {
-        await knex("treino_exercicios").insert({
-          treino_id: id,
-          exercicio_id: exId,
-          series: 0,
-          repeticoes: 0,
-          descanso_segundos: 0,
+      if (!aluno_id || !professor_id) {
+        return res.status(400).json({
+          message: "Aluno e professor devem ser informados",
         });
       }
-    }
 
-    res.json({ message: "Treino atualizado com sucesso" });
+      await Treino.query()
+        .patch({
+          nome,
+          descricao,
+          aluno_id,
+          professor_id,
+        })
+        .where("id", id);
+
+      // Atualizar exercícios
+      const knex = require("../db");
+      await knex("treino_exercicios").where({ treino_id: id }).del();
+
+      if (Array.isArray(exercicios) && exercicios.length > 0) {
+        const inserts = exercicios.map((ex) => ({
+          treino_id: id,
+          exercicio_id: ex.id,
+          series: ex.series || 0,
+          repeticoes: ex.repeticoes || 0,
+          descanso_segundos: ex.descanso_segundos || 0,
+        }));
+
+        await knex("treino_exercicios").insert(inserts);
+      }
+
+      const treinoAtualizado = await Treino.query()
+        .findById(id)
+        .withGraphFetched("[exercicios]");
+
+      res.json(treinoAtualizado);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Erro ao atualizar treino" });
+    }
   },
 
   async remove(req, res) {
@@ -92,54 +145,14 @@ module.exports = {
     res.json({ message: "Removido" });
   },
 
-  // endpoints utilitários para associar exercício <-> treino
-  async addExercicio(req, res) {
-    const treinoId = req.params.id;
-    const { exercicio_id, series, repeticoes, descanso_segundos } = req.body;
+  // async removeExercicio(req, res) {
+  //   const treino_id = req.params.id;
+  //   const exercicio_id = req.params.exercicioId;
 
-    // insere na tabela associativa via knex/objection
-    await Treino.relatedQuery("exercicios")
-      .for(treinoId)
-      .relate({
-        id: exercicio_id,
-        // quando precisamos incluir propriedades na tabela intermediaria,
-        // usamos knex diretamente:
-      })
-      .catch(() => {});
+  //   const knex = require("../db");
 
-    // atualização manual na tabela associativa:
-    const knex = require("../db");
-    const existing = await knex("treino_exercicios")
-      .where({ treino_id: treinoId, exercicio_id })
-      .first();
+  //   await knex("treino_exercicios").where({ treino_id, exercicio_id }).del();
 
-    if (existing) {
-      await knex("treino_exercicios")
-        .where({ treino_id: treinoId, exercicio_id })
-        .update({ series, repeticoes, descanso_segundos });
-      return res.json({ message: "Atualizado" });
-    } else {
-      const id = await knex("treino_exercicios")
-        .insert({
-          treino_id: treinoId,
-          exercicio_id,
-          series,
-          repeticoes,
-          descanso_segundos,
-        })
-        .returning("id");
-      return res.status(201).json({ id });
-    }
-  },
-
-  async removeExercicio(req, res) {
-    const treinoId = req.params.id;
-    const exercicioId = req.params.exercicioId;
-    console.log("Removendo exercício", exercicioId, "do treino", treinoId);
-    const knex = require("../db");
-    await knex("treino_exercicios")
-      .where({ treino_id: treinoId, exercicio_id: exercicioId })
-      .del();
-    res.json({ message: "Removido" });
-  },
+  //   return res.json({ message: "Exercício removido do treino" });
+  // },
 };

@@ -15,10 +15,9 @@ module.exports = {
 
   async create(req, res) {
     console.log("entrou");
-    const { nome, categoria, equipamento, descricao } = req.body;
+    const { nome, equipamento, descricao } = req.body;
     const created = await Exercicio.query().insert({
       nome,
-      categoria,
       equipamento,
       descricao,
     });

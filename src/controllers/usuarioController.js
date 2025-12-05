@@ -9,6 +9,30 @@ function gerarToken(usuario) {
   });
 }
 
+const knex = require("../db");
+
+async function syncUserRole(userId, tipo) {
+  if (tipo === "aluno") {
+    const exists = await knex("alunos").where({ usuario_id: userId }).first();
+    if (!exists) {
+      await knex("alunos").insert({ usuario_id: userId });
+    }
+
+    await knex("professores").where({ usuario_id: userId }).del();
+  }
+
+  if (tipo === "professor") {
+    const exists = await knex("professores")
+      .where({ usuario_id: userId })
+      .first();
+    if (!exists) {
+      await knex("professores").insert({ usuario_id: userId });
+    }
+
+    await knex("alunos").where({ usuario_id: userId }).del();
+  }
+}
+
 module.exports = {
   async list(req, res) {
     console.log("netoru");
@@ -52,10 +76,9 @@ module.exports = {
         return res.status(409).json({ message: "Email já cadastrado." });
       }
 
-      // 3️⃣ Hash da senha
+      // Hash da senha
       const hashedPassword = await bcrypt.hash(senha, 10);
 
-      // 4️⃣ Criar usuário
       const newUser = await Usuario.query().insert({
         nome,
         sobrenome,
@@ -64,7 +87,8 @@ module.exports = {
         senha: hashedPassword,
       });
 
-      // 5️⃣ Retornar sem expor senha
+      await syncUserRole(newUser.id, tipo);
+
       return res.status(201).json({
         id: newUser.id,
         nome: newUser.nome,
@@ -112,6 +136,10 @@ module.exports = {
 
       console.log("Usuário atualizado:", updatedUser);
 
+      if (tipo !== undefined) {
+        await syncUserRole(updatedUser.id, tipo);
+      }
+
       gerarToken(updatedUser);
 
       return res.json(updatedUser);
@@ -123,7 +151,7 @@ module.exports = {
 
   async updateUser(req, res) {
     try {
-      const targetId = req.params.id; // quem será atualizado
+      const targetId = req.params.id;
 
       const { nome, sobrenome, email, tipo, senha } = req.body;
 
@@ -133,7 +161,7 @@ module.exports = {
       if (sobrenome !== undefined) dataToUpdate.sobrenome = sobrenome;
       if (email !== undefined) dataToUpdate.email = email;
       if (tipo !== undefined) dataToUpdate.tipo = tipo;
-      if (senha !== undefined) dataToUpdate.senha = senha; // ideal: hashear antes
+      if (senha !== undefined) dataToUpdate.senha = senha;
 
       if (Object.keys(dataToUpdate).length === 0) {
         return res
@@ -145,10 +173,17 @@ module.exports = {
         .patchAndFetchById(targetId, dataToUpdate)
         .select("id", "nome", "sobrenome", "email", "tipo");
 
+      if (tipo !== undefined) {
+        await syncUserRole(updatedUser.id, tipo);
+      }
+
       return res.json(updatedUser);
     } catch (error) {
       console.error(error);
       return res.status(500).json({ message: "Erro ao atualizar usuário" });
     }
   },
+
+  // -----------------------------------------------------------
+  //
 };
