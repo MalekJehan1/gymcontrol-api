@@ -30,7 +30,7 @@ class Treino extends BaseModel {
         modelClass: Aluno,
         join: {
           from: "treinos.aluno_id",
-          to: "alunos.id",
+          to: "alunos.usuario_id",
         },
       },
 
@@ -39,7 +39,7 @@ class Treino extends BaseModel {
         modelClass: Professor,
         join: {
           from: "treinos.professor_id",
-          to: "professores.id",
+          to: "professores.usuario_id",
         },
       },
     };
