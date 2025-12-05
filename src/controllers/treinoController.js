@@ -63,6 +63,22 @@ module.exports = {
         });
       }
 
+      // Verificar se aluno existe
+      const aluno = await Aluno.query().findById(aluno_id);
+      if (!aluno) {
+        return res.status(404).json({
+          message: "Aluno não encontrado",
+        });
+      }
+
+      // Verificar se professor existe
+      const professor = await Professor.query().findById(professor_id);
+      if (!professor) {
+        return res.status(404).json({
+          message: "Professor não encontrado",
+        });
+      }
+
       const created = await Treino.query().insert({
         nome,
         descricao,
@@ -104,6 +120,22 @@ module.exports = {
       if (!aluno_id || !professor_id) {
         return res.status(400).json({
           message: "Aluno e professor devem ser informados",
+        });
+      }
+
+      // Verificar se aluno existe
+      const aluno = await Aluno.query().findById(aluno_id);
+      if (!aluno) {
+        return res.status(404).json({
+          message: "Aluno não encontrado",
+        });
+      }
+
+      // Verificar se professor existe
+      const professor = await Professor.query().findById(professor_id);
+      if (!professor) {
+        return res.status(404).json({
+          message: "Professor não encontrado",
         });
       }
 
