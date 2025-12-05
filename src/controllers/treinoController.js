@@ -13,10 +13,12 @@ module.exports = {
 
   async listMeusTreinos(req, res) {
     console.log("Listando treinos do aluno logado request.user:", req.user);
+
     try {
       const usuarioId = req.user.usuario.id;
 
-      const aluno = await require("../models/Aluno")
+
+      const aluno =await  Aluno
         .query()
         .findOne({ usuario_id: usuarioId });
 
@@ -25,6 +27,7 @@ module.exports = {
           .status(404)
           .json({ error: "Nenhum aluno encontrado para este usuário" });
       }
+
 
       const treinos = await Treino.query()
         .where("aluno_id", aluno.id)

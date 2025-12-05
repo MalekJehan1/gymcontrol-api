@@ -9,7 +9,8 @@ function gerarToken(usuario) {
   });
 }
 
-const knex = require("../db");
+const { knex } = require('../db');
+
 
 async function syncUserRole(userId, tipo) {
   if (tipo === "aluno") {
