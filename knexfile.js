@@ -4,16 +4,24 @@ module.exports = {
   development: {
     client: "pg",
     connection: {
-      connectionString: process.env.DATABASE_URL,
-      ssl: {
-        rejectUnauthorized: false,
-      },
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASS,
+      database: process.env.DB_NAME,
+      ssl: { rejectUnauthorized: false }
     },
     migrations: {
-      directory: "./migrations",
-    },
-    seeds: {
-      directory: "./seeds",
-    },
+      tableName: "knex_migrations",
+      directory: "./migrations"
+    }
   },
+
+  production: {
+    client: "pg",
+    connection: `${process.env.DATABASE_URL}?sslmode=require`,
+    migrations: {
+      tableName: "knex_migrations",
+      directory: "./migrations"
+    }
+  }
 };
