@@ -22,10 +22,10 @@ module.exports = {
       ssl: { rejectUnauthorized: false }
     },
     migrations: {
-      directory: './database/migrations'
+      directory: './migrations'
     },
     seeds: {
-      directory: './database/seeds'
+      directory: './seeds'
     },
     pool: {
       min: 2,
